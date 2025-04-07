@@ -13,6 +13,10 @@ document.addEventListener("DOMContentLoaded", function () {
   let viewingComments = false;
   let currentPostId = null;
   let currentPostPermalink = null;
+  // Add variable to track loaded comments
+  let loadedComments = [];
+  // Add variable to track original post text
+  let fullPostText = "";
 
   // Add event listener for Enter key in subreddit input
   subredditInput.addEventListener("keyup", function (event) {
@@ -92,6 +96,8 @@ document.addEventListener("DOMContentLoaded", function () {
         return response.json();
       })
       .then((data) => {
+        // Store comments for later use when loading more
+        loadedComments = data[1].data.children;
         displayComments(data);
       })
       .catch((error) => {
@@ -142,7 +148,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // If post has text content (selftext), truncate to 150 chars for Kindle
       if (postData.selftext) {
+        // Store full text in a data attribute for expanding later
+        content.dataset.fullText = postData.selftext;
         content.textContent = truncateText(postData.selftext, 150);
+
+        // Only add expand button if text is truncated
+        if (postData.selftext.length > 150) {
+          const expandButton = document.createElement("button");
+          expandButton.textContent = "Show full text";
+          expandButton.style.fontSize = "14px";
+          expandButton.style.padding = "5px";
+          expandButton.style.marginTop = "10px";
+          expandButton.style.backgroundColor = "transparent";
+          expandButton.style.border = "1px solid #ccc";
+          expandButton.style.width = "100%";
+
+          expandButton.addEventListener("click", function (event) {
+            event.stopPropagation(); // Prevent opening Reddit
+
+            // Toggle between full and truncated text
+            if (expandButton.textContent === "Show full text") {
+              content.textContent = postData.selftext;
+              expandButton.textContent = "Show less";
+            } else {
+              content.textContent = truncateText(postData.selftext, 150);
+              expandButton.textContent = "Show full text";
+            }
+          });
+
+          content.appendChild(document.createElement("br"));
+          content.appendChild(expandButton);
+        }
       }
 
       // Only show small images and skip very large ones that might crash the Kindle browser
@@ -214,6 +250,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const postData = data[0].data.children[0].data;
     // Comments are in second element
     const comments = data[1].data.children;
+    // Store full post text
+    fullPostText = postData.selftext;
 
     // Create back button
     const backButton = document.createElement("button");
@@ -248,7 +286,40 @@ document.addEventListener("DOMContentLoaded", function () {
     if (postData.selftext) {
       const postContent = document.createElement("div");
       postContent.className = "post-content";
-      postContent.textContent = truncateText(postData.selftext, 300);
+
+      // Create a wrapper for the post text
+      const postTextContainer = document.createElement("div");
+      postTextContainer.textContent = truncateText(postData.selftext, 300);
+      postContent.appendChild(postTextContainer);
+
+      // Add expand button if text is truncated
+      if (postData.selftext.length > 300) {
+        const expandButton = document.createElement("button");
+        expandButton.textContent = "Show full text";
+        expandButton.style.fontSize = "14px";
+        expandButton.style.padding = "5px";
+        expandButton.style.marginTop = "10px";
+        expandButton.style.backgroundColor = "transparent";
+        expandButton.style.border = "1px solid #ccc";
+        expandButton.style.width = "100%";
+
+        expandButton.addEventListener("click", function () {
+          // Toggle between full and truncated text
+          if (expandButton.textContent === "Show full text") {
+            postTextContainer.textContent = postData.selftext;
+            expandButton.textContent = "Show less";
+          } else {
+            postTextContainer.textContent = truncateText(
+              postData.selftext,
+              300
+            );
+            expandButton.textContent = "Show full text";
+          }
+        });
+
+        postContent.appendChild(expandButton);
+      }
+
       postContent.style.padding = "10px";
       postContent.style.borderBottom = "1px solid #ccc";
       postsContainer.appendChild(postContent);
@@ -289,16 +360,71 @@ document.addEventListener("DOMContentLoaded", function () {
       renderCommentThread(commentData, commentsContainer, 0);
     }
 
-    // Show message if there are more comments
+    // Show message if there are more comments and add a button to load more
     if (comments.length > renderedComments) {
-      const moreComments = document.createElement("div");
-      moreComments.textContent = `${
+      const moreCommentsContainer = document.createElement("div");
+      moreCommentsContainer.style.textAlign = "center";
+      moreCommentsContainer.style.margin = "15px 0";
+
+      const moreCommentsButton = document.createElement("button");
+      moreCommentsButton.textContent = `Load ${
         comments.length - renderedComments
       } more comments...`;
-      moreComments.style.textAlign = "center";
-      moreComments.style.margin = "15px 0";
-      moreComments.style.fontStyle = "italic";
-      postsContainer.appendChild(moreComments);
+      moreCommentsButton.style.fontSize = "16px";
+      moreCommentsButton.style.padding = "10px";
+      moreCommentsButton.style.width = "100%";
+
+      moreCommentsButton.addEventListener("click", function () {
+        // Replace button with loading indicator
+        moreCommentsButton.textContent = "Loading more comments...";
+        moreCommentsButton.disabled = true;
+
+        // Render more comments
+        const additionalComments = 8; // Number of additional comments to load
+        let newRenderedComments = 0;
+
+        for (
+          let i = 0;
+          i < comments.length && newRenderedComments < additionalComments;
+          i++
+        ) {
+          // Skip already rendered comments
+          if (i < renderedComments * 2) continue; // Rough estimate to skip rendered comments
+
+          // Skip non-comment items
+          if (comments[i].kind !== "t1") continue;
+
+          const commentData = comments[i].data;
+
+          // Skip deleted/removed comments
+          if (
+            commentData.body === "[removed]" ||
+            commentData.body === "[deleted]"
+          )
+            continue;
+
+          // Render this comment thread
+          renderCommentThread(commentData, commentsContainer, 0);
+          newRenderedComments++;
+        }
+
+        // Update rendered count
+        renderedComments += newRenderedComments;
+
+        // If there are still more comments, update the button
+        if (comments.length > renderedComments) {
+          moreCommentsButton.textContent = `Load ${
+            comments.length - renderedComments
+          } more comments...`;
+          moreCommentsButton.disabled = false;
+        } else {
+          // No more comments to load, remove the button
+          moreCommentsContainer.remove();
+        }
+      });
+
+      moreCommentsContainer.appendChild(moreCommentsButton);
+      postsContainer.appendChild(moreCommentsContainer);
     }
 
     // Add link to view on Reddit
@@ -341,13 +467,45 @@ document.addEventListener("DOMContentLoaded", function () {
     commentHeader.style.fontSize = depth > 0 ? "14px" : "16px";
     commentElement.appendChild(commentHeader);
 
-    // Comment body
+    // Comment body with expand capability
     const commentBody = document.createElement("div");
     commentBody.className = "comment-body";
-    commentBody.textContent = truncateText(
-      commentData.body,
-      depth > 0 ? 150 : 250
-    );
+
+    // Store the full text
+    const fullText = commentData.body;
+    const truncatedLength = depth > 0 ? 150 : 250;
+    const isTruncated = fullText.length > truncatedLength;
+
+    // Create text container
+    const textContainer = document.createElement("div");
+    textContainer.textContent = isTruncated
+      ? truncateText(fullText, truncatedLength)
+      : fullText;
+    commentBody.appendChild(textContainer);
+
+    // Add expand button if text is truncated
+    if (isTruncated) {
+      const expandTextButton = document.createElement("button");
+      expandTextButton.textContent = "Show more";
+      expandTextButton.style.fontSize = "12px";
+      expandTextButton.style.padding = "3px 5px";
+      expandTextButton.style.marginTop = "5px";
+      expandTextButton.style.backgroundColor = "transparent";
+      expandTextButton.style.border = "1px solid #ccc";
+
+      expandTextButton.addEventListener("click", function () {
+        if (expandTextButton.textContent === "Show more") {
+          textContainer.textContent = fullText;
+          expandTextButton.textContent = "Show less";
+        } else {
+          textContainer.textContent = truncateText(fullText, truncatedLength);
+          expandTextButton.textContent = "Show more";
+        }
+      });
+
+      commentBody.appendChild(expandTextButton);
+    }
+
     commentBody.style.fontSize = depth > 0 ? "14px" : "16px";
     commentElement.appendChild(commentBody);
 
@@ -413,18 +571,56 @@ document.addEventListener("DOMContentLoaded", function () {
             );
           }
 
-          // Show "more replies" message if needed
+          // Show "more replies" message if needed and add load more button
           if (validReplies.length > maxReplies) {
-            const moreReplies = document.createElement("div");
-            moreReplies.textContent = `${
+            const moreRepliesContainer = document.createElement("div");
+            moreRepliesContainer.style.marginLeft =
+              Math.min((depth + 1) * 15, 45) + "px";
+            moreRepliesContainer.style.marginTop = "5px";
+
+            const loadMoreRepliesButton = document.createElement("button");
+            loadMoreRepliesButton.textContent = `Load ${
               validReplies.length - maxReplies
             } more replies...`;
-            moreReplies.style.marginLeft =
-              Math.min((depth + 1) * 15, 45) + "px";
-            moreReplies.style.fontStyle = "italic";
-            moreReplies.style.fontSize = "14px";
-            moreReplies.style.marginTop = "5px";
-            repliesContainer.appendChild(moreReplies);
+            loadMoreRepliesButton.style.fontSize = "14px";
+            loadMoreRepliesButton.style.padding = "5px";
+            loadMoreRepliesButton.style.backgroundColor = "transparent";
+            loadMoreRepliesButton.style.border = "1px solid #ccc";
+
+            loadMoreRepliesButton.addEventListener("click", function () {
+              // Disable button while loading
+              loadMoreRepliesButton.disabled = true;
+              loadMoreRepliesButton.textContent = "Loading more replies...";
+
+              // Load more replies (3 at a time)
+              const additionalReplies = 3;
+              const startIndex = maxReplies; // Start from where we left off
+              const endIndex = Math.min(
+                startIndex + additionalReplies,
+                validReplies.length
+              );
+
+              for (let i = startIndex; i < endIndex; i++) {
+                renderCommentThread(
+                  validReplies[i].data,
+                  repliesContainer,
+                  depth + 1
+                );
+              }
+
+              // Update button or remove if no more replies
+              if (endIndex < validReplies.length) {
+                loadMoreRepliesButton.textContent = `Load ${
+                  validReplies.length - endIndex
+                } more replies...`;
+                loadMoreRepliesButton.disabled = false;
+              } else {
+                moreRepliesContainer.remove();
+              }
+            });
+
+            moreRepliesContainer.appendChild(loadMoreRepliesButton);
+            repliesContainer.appendChild(moreRepliesContainer);
           }
         } else if (validReplies.length > 0) {
           // At max depth, just show a message about more replies
