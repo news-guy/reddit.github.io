@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kindle Reddit</title>
+    <link
+      rel="shortcut icon"
+      href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAk1BMVEX////+/v79/f38/Pz6+vqVlZXBwcG5ubmYmJiOjo4AAADMzMzX19fn5+etra3f39+IiIj09PR9fX3t7e0xMTHl5eVISEg5OTlxcXF0dHSDg4MgICCenp7Jycn39/c1NTWjo6NdXV1LS0v5+flBQUHHx8f19fWgoKA8PDy9vb1aWlrv7+/r6+tUVFTb29uqqqqurq7///9+rK3sAAAAAWJLR0QAiAUdSAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAAd0SU1FB+QDCgQzI79a0+AAAACzSURBVDjLzZPNEoIwDISTs3gQwXIQFAXBH/S9/9u5aR0YD3p3vrOTTSYTWRX5S6poVBzNYwZQTVIsxZeKsQQ1RU2rrmurAdZaqTdgNwWbg93p7GZgODfHhVDI+SLcQMvldWVCgJK3292eDLAHSg4H4xDgEzAcTxBRuFywfj6EAK9bvt7u7z80lPRCGIz3sXOQUXtTcWKMx9P5An12v4YQ7vebRk7A9sNMNcB30vLDzmXfPfgCCYYWfJ95CiMAAAAldEVYdGRhdGU6Y3JlYXRlADIwMjAtMDMtMTBUMDQ6NTE6MzUrMDA6MDDr76VrAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDIwLTAzLTEwVDA0OjUxOjM1KzAwOjAwmrIdlwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAASUVORK5CYII="
+      type="image/png"
+    />
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 10px;
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: white;
+        color: black;
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        text-align: center;
+        border-bottom: 1px solid black;
+        padding-bottom: 10px;
+      }
+      .post {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid black;
+        background-color: white;
+      }
+      .post-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .post-info {
+        font-size: 16px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 5px;
+      }
+      .post-content {
+        font-size: 18px;
+        line-height: 1.4;
+      }
+      .loading {
+        text-align: center;
+        font-size: 18px;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+      .subreddit-form {
+        margin-bottom: 20px;
+        text-align: center;
+        padding: 10px;
+        border: 1px solid black;
+      }
+      input {
+        font-size: 18px;
+        padding: 8px 12px;
+        width: 60%;
+        border: 1px solid black;
+      }
+      button {
+        font-size: 18px;
+        padding: 8px 12px;
+        background-color: white;
+        border: 1px solid black;
+        margin: 5px;
+      }
+      button:disabled {
+        border: 1px solid #ccc;
+        color: #ccc;
+      }
+      .nav-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin: 20px 0;
+      }
+      .nav-buttons button {
+        font-size: 18px;
+        padding: 12px 20px;
+        width: 45%;
+      }
+      img {
+        display: block;
+        margin: 10px auto;
+        border: 1px solid #ccc;
+      }
+      /* Comment thread styles */
+      .comment {
+        margin-bottom: 10px;
+        background-color: white;
+        border-radius: 2px;
+      }
+      .comment-header {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .comment-body {
+        margin-bottom: 5px;
+      }
+      .toggle-replies {
+        font-size: 14px;
+        padding: 4px 8px;
+        background-color: transparent;
+        border: 1px solid #ccc;
+        margin-top: 5px;
+        cursor: pointer;
+      }
+      .replies-container {
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Kindle Reddit</h1>
+
+    <div class="subreddit-form">
+      <input
+        type="text"
+        id="subreddit-input"
+        placeholder="Enter subreddit name"
+        value="all"
+      />
+      <button id="load-button">Load</button>
+    </div>
+
+    <div id="posts-container"></div>
+
+    <div class="nav-buttons">
+      <button id="prev-button" disabled>Previous</button>
+      <button id="next-button">Next</button>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
